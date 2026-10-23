@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Machine</title>
+<meta name="theme-color" content="#060a13">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23060a13'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%233fe0ff' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%233ddc97'/%3E%3C/svg%3E">
+<!--
+  THE MACHINE - website version of dashboard.html.
+  It is put online by web_push.py (python web_push.py setup). The bot sends its numbers to the "data"
+  branch of this GitHub repo every couple of minutes, and this page reads them.
+-->
+<style>
+:root{
+  --bg:#060a13; --panel:#0b1222; --panel2:#0e1830; --line:#1b2a47; --text:#d6e6ff; --dim:#6d82a8; --faint:#2a3a5c;
+  --cyan:#3fe0ff; --green:#3ddc97; --red:#ff5c7a; --amber:#ffb547; --violet:#b07cff;
+  --mono:"Cascadia Code","JetBrains Mono",Consolas,"SFMono-Regular",Menlo,monospace;
+  --sans:"Segoe UI Variable","Segoe UI",system-ui,-apple-system,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--mono);font-size:14px}
+body{min-height:100vh;background:
+  radial-gradient(1200px 600px at 80% -10%, rgba(63,224,255,.07), transparent 60%),
+  radial-gradient(900px 500px at -10% 110%, rgba(176,124,255,.07), transparent 60%), var(--bg)}
+.wrap{max-width:1400px;margin:0 auto;padding:20px max(16px, env(safe-area-inset-right, 0px)) 40px max(16px, env(safe-area-inset-left, 0px))}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.crumbs{color:var(--dim);font-size:12px;letter-spacing:.12em;text-transform:uppercase}
+.crumbs b{color:var(--amber);font-weight:600}
+h1{font-family:var(--sans);font-weight:800;font-size:clamp(28px,4vw,46px);letter-spacing:-.02em;margin:6px 0 0;line-height:1}
+.right{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.clock{font-size:22px;color:var(--text);letter-spacing:.04em;font-variant-numeric:tabular-nums}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border:1px solid var(--line);border-radius:999px;
+  font-size:12px;letter-spacing:.1em;text-transform:uppercase;background:var(--panel)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--dim)}
+.on .dot{background:var(--green);box-shadow:0 0 10px var(--green);animation:pulse 1.6s infinite}
+.warn .dot{background:var(--amber);box-shadow:0 0 10px var(--amber);animation:pulse 1s infinite}
+.off .dot{background:var(--dim)}
+@keyframes pulse{50%{opacity:.35}}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(12,1fr)}
+.card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:14px;padding:16px;
+  position:relative;overflow:hidden;min-width:0}
+.card h2{margin:0 0 12px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);font-weight:600}
+.c3{grid-column:span 3}.c4{grid-column:span 4}.c5{grid-column:span 5}.c7{grid-column:span 7}.c8{grid-column:span 8}.c12{grid-column:span 12}
+@media (max-width:1100px){.c3,.c4,.c5{grid-column:span 6}.c7,.c8{grid-column:span 12}}
+@media (max-width:700px){.c3,.c4,.c5,.c7,.c8{grid-column:span 12}}
+.big{font-family:var(--sans);font-weight:800;font-size:34px;letter-spacing:-.02em}
+.muted{color:var(--dim)}
+.g{color:var(--green)}.r{color:var(--red)}.a{color:var(--amber)}.c{color:var(--cyan)}.v{color:var(--violet)}
+.row{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px dashed var(--faint)}
+.row:last-child{border-bottom:0}
+.tag{font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid var(--line);letter-spacing:.08em}
+.tag.eval{color:var(--cyan);border-color:rgba(63,224,255,.4)}
+.tag.funded{color:var(--green);border-color:rgba(61,220,151,.4)}
+.bar{height:12px;border-radius:999px;background:#08101f;border:1px solid var(--line);overflow:hidden;margin:10px 0 6px}
+.bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--green));box-shadow:0 0 14px rgba(61,220,151,.5)}
+.ring{display:flex;align-items:center;justify-content:center}
+.ring svg{max-width:100%;height:auto}
+.status{font-family:var(--sans);font-size:18px;font-weight:700;margin:2px 0 10px;line-height:1.3}
+.trade{border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:10px;background:#081124}
+.trade .lv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;font-size:12px}
+.trade .lv div{background:#0a1630;border:1px solid var(--faint);border-radius:8px;padding:8px}
+.lv b{display:block;font-size:15px;margin-top:2px;color:var(--text)}
+.na{position:relative;height:46px;margin:14px 0 4px}
+.na .zone{position:absolute;top:16px;height:14px;left:15%;right:15%;border:1px dashed var(--dim);border-radius:6px;background:rgba(109,130,168,.08)}
+.na .mk{position:absolute;top:8px;width:2px;height:30px;background:var(--amber);box-shadow:0 0 10px var(--amber)}
+.na .lbl{position:absolute;top:34px;font-size:11px;color:var(--dim);transform:translateX(-50%)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;color:var(--dim);font-weight:500;font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:6px 6px;border-bottom:1px solid var(--line)}
+td{padding:7px 6px;border-bottom:1px dashed var(--faint);white-space:nowrap}
+td.num{text-align:right}
+.scroll{overflow-x:auto}
+svg text{font-family:var(--mono)}
+.node rect{fill:#0a1428;stroke:var(--line);stroke-width:1.2}
+.node.act rect{stroke:var(--amber);stroke-width:2;filter:drop-shadow(0 0 8px rgba(255,181,71,.7))}
+.node .t{fill:var(--text);font-size:12.5px;font-weight:600}
+.node .s{fill:var(--dim);font-size:10.5px}
+.edge{stroke:#2c4470;stroke-width:1.5;fill:none;stroke-dasharray:5 6;animation:flow 1.2s linear infinite}
+.edge.hot{stroke:var(--cyan)}
+@keyframes flow{to{stroke-dashoffset:-22}}
+.foot{margin-top:16px;color:var(--dim);font-size:11.5px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.alert{border:1px solid rgba(255,181,71,.5);background:rgba(255,181,71,.08);color:var(--amber);padding:10px 14px;border-radius:10px;margin-bottom:14px}
+.loading{opacity:.55}
+@media (prefers-reduced-motion:reduce){.edge,.on .dot,.warn .dot{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="crumbs"><b>01 / THE MACHINE</b> &nbsp;·&nbsp; one-trade bot &nbsp;·&nbsp; QQQ → MNQ &nbsp;·&nbsp; paper</div>
+      <h1>What's actually running.</h1>
+    </div>
+    <div class="right">
+      <span id="pill" class="pill off"><span class="dot"></span><span id="pilltxt">loading…</span></span>
+      <span class="clock" id="clock">--:--:--</span>
+    </div>
+  </header>
+  <div class="alert" id="alert" hidden></div>
+
+  <div class="grid loading" id="grid">
+    <section class="card c3">
+      <h2>Today's checks</h2>
+      <div class="ring" id="ring"></div>
+      <div class="muted" style="text-align:center;font-size:12px;margin-top:6px" id="ringnote"></div>
+    </section>
+
+    <section class="card c5">
+      <h2>Today</h2>
+      <div class="status" id="status">Getting the bot's latest update…</div>
+      <div class="muted" id="note"></div>
+      <div id="na"></div>
+      <div id="trade"></div>
+    </section>
+
+    <section class="card c4">
+      <h2>Practice Lucid account</h2>
+      <div id="acct"></div>
+    </section>
+
+    <section class="card c12">
+      <h2>The pipeline - glowing box = what the bot is doing right now</h2>
+      <div class="scroll" id="pipe"></div>
+    </section>
+
+    <section class="card c7">
+      <h2>Practice money - every day the bot ran</h2>
+      <div id="chart"></div>
+    </section>
+
+    <section class="card c5">
+      <h2>Last days</h2>
+      <div class="scroll" id="days"></div>
+    </section>
+  </div>
+  <div class="foot">
+    <span id="settings"></span>
+    <span>Updated <span id="upd">-</span> · the bot sends updates every ~2 min · <span id="fetchnote">this page checks every 30 s</span></span>
+  </div>
+</div>
+
+<script>
+// Filled in by "python web_push.py setup"
+const OWNER = "azwhylol", REPO = "azgoonlivedatabot";
+const DATA_URL = `https://api.github.com/repos/${OWNER}/${REPO}/contents/data.json?ref=data`;
+const POLL_MS = 30000;          // look for new data every 30 s (only while the page is on screen)
+const STALE_SEC = 420;          // no update for 7 min while trading = something is wrong
+
+let D = null;                   // the latest data from the bot
+let pausedUntil = 0;            // GitHub's hourly limit reached -> wait until this time (ms)
+
+const $ = id => document.getElementById(id);
+const money = (v, plus=true) => (v < 0 ? "-" : (plus ? "+" : "")) + "$" + Math.abs(v).toLocaleString("en-US", {maximumFractionDigits: 0});
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const etTime = ms => new Date(ms).toLocaleTimeString("en-US", {hour:"numeric", minute:"2-digit", timeZone:"America/New_York"});
+
+// ---------------------------------------------------------------- getting the data
+async function load(){
+  if (document.hidden || Date.now() < pausedUntil) return;
+  try {
+    const res = await fetch(DATA_URL, {cache: "no-cache", headers: {Accept: "application/vnd.github.raw+json"}});
+    if (res.status === 403 || res.status === 429) {
+      const reset = Number(res.headers.get("x-ratelimit-reset")) * 1000;
+      pausedUntil = reset > Date.now() ? reset : Date.now() + 5 * 60000;
+      $("fetchnote").textContent = `GitHub's hourly limit reached - showing the last update, checking again at ${etTime(pausedUntil)} ET`;
+      return;
+    }
+    if (res.status === 404) {
+      if (!D) showProblem("No bot data online yet. On your PC, run: python web_push.py setup - then start the bot: python onebot.py live");
+      return;
+    }
+    if (!res.ok) throw new Error("GitHub answered " + res.status);
+    const fresh = JSON.parse(await res.text());
+    $("fetchnote").textContent = "this page checks every 30 s";
+    if (!D || fresh.updated_ms !== D.updated_ms || JSON.stringify(fresh) !== JSON.stringify(D)) { D = fresh; render(); }
+  } catch (e) {
+    $("fetchnote").textContent = "couldn't reach GitHub just now - trying again in 30 s";
+  }
+}
+
+function showProblem(msg){
+  $("status").textContent = msg;
+  $("pill").className = "pill off"; $("pilltxt").textContent = "no data yet";
+}
+
+// ---------------------------------------------------------------- clock + alive check (every second)
+function tick(){
+  $("clock").textContent = new Date().toLocaleTimeString("en-US", {hour12:false, timeZone:"America/New_York"}) + " ET";
+  if (!D) return;
+  const age = (Date.now() - D.updated_ms) / 1000;
+  const pill = $("pill"), t = $("pilltxt"), al = $("alert");
+  const quiet = ["closed", "sleeping", "stopped"].includes(D.state);
+  al.hidden = true;
+  if (D.state === "offline") { pill.className = "pill off"; t.textContent = "bot not running"; }
+  else if (age > STALE_SEC && !quiet) {
+    pill.className = "pill warn"; t.textContent = "no heartbeat";
+    al.hidden = false;
+    al.textContent = "⚠️ The bot hasn't sent an update for " + Math.round(age/60) + " min. Is the black window still open and the PC awake?";
+  } else if (quiet) { pill.className = "pill off"; t.textContent = D.state === "closed" ? "market closed" : (D.state === "stopped" ? "stopped" : "sleeping"); }
+  else { pill.className = "pill on"; t.textContent = D.state === "in_trade" ? "in a trade" : (D.state === "done" ? "done for today" : "running"); }
+  $("upd").textContent = D.updated + " ET (" + (age < 60 ? Math.round(age) + " s" : age < 5400 ? Math.round(age/60) + " min" : Math.round(age/3600) + " h") + " ago)";
+}
+
+// ---------------------------------------------------------------- draw everything from D
+function render(){
+  $("grid").classList.remove("loading");
+  ring(); today(); account(); pipeline(); chart(); days();
+  $("settings").textContent = D.settings || "";
+  tick();
+}
+
+// ring of today's checks (10:00 ... 3:00)
+function ring(){
+  const T = D.today || {}, checks = T.checks || [], slots = ["10:00","10:30","11:00","11:30","12:00","12:30","1:00","1:30","2:00","2:30","3:00"];
+  const R = 78, C = 100, n = slots.length, gap = 0.06;
+  let s = `<svg viewBox="-18 -12 236 224" width="236" height="224" role="img" aria-label="Today's checks">`;
+  slots.forEach((lab, i) => {
+    const a0 = -Math.PI/2 + i * 2*Math.PI/n + gap, a1 = -Math.PI/2 + (i+1) * 2*Math.PI/n - gap;
+    const x0 = C + R*Math.cos(a0), y0 = C + R*Math.sin(a0), x1 = C + R*Math.cos(a1), y1 = C + R*Math.sin(a1);
+    const ck = checks.find(c => c.label === lab);
+    let col = "#1b2a47";
+    if (ck) col = ck.decision === "BUY" ? "#3ddc97" : ck.decision === "SHORT" ? "#ff5c7a" : ck.decision === "skipped" ? "#ffb547" : "#4a6290";
+    s += `<path d="M${x0},${y0} A${R},${R} 0 0 1 ${x1},${y1}" stroke="${col}" stroke-width="12" fill="none" stroke-linecap="round"><title>${lab}: ${ck ? esc(ck.decision) : "not yet"}</title></path>`;
+    const am = (a0 + a1) / 2;
+    if (i % 2 === 0) s += `<text x="${C + 100*Math.cos(am)}" y="${C + 100*Math.sin(am) + 4}" fill="#6d82a8" font-size="9.5" text-anchor="middle">${lab}</text>`;
+  });
+  const pnl = T.pnl;
+  const center = (pnl !== null && pnl !== undefined) ? money(pnl) : (checks.length + "/" + n);
+  const ccol = (pnl > 0) ? "#3ddc97" : (pnl < 0 ? "#ff5c7a" : "#d6e6ff");
+  s += `<text x="100" y="104" text-anchor="middle" fill="${ccol}" font-size="${center.length > 6 ? 24 : 30}" font-weight="800" font-family="Segoe UI, system-ui">${center}</text>`;
+  const sub = (pnl !== null && pnl !== undefined) ? (D.state === "in_trade" ? "right now" : "today's result") : "checks today";
+  s += `<text x="100" y="124" text-anchor="middle" fill="#6d82a8" font-size="10">${sub}</text></svg>`;
+  $("ring").innerHTML = s;
+  $("ringnote").innerHTML = `<span class="g">■</span> buy &nbsp;<span class="r">■</span> short &nbsp;<span style="color:#4a6290">■</span> inside &nbsp;<span class="a">■</span> skipped`;
+}
+
+// today
+function today(){
+  const T = D.today || {};
+  $("status").textContent = D.headline || "";
+  $("note").textContent = D.note || "";
+  $("na").innerHTML = ""; $("trade").innerHTML = "";
+  const lc = (T.checks || []).slice(-1)[0];
+  if (lc && lc.top && lc.bot && lc.price) {
+    const lo = Math.min(lc.bot, lc.price) , hi = Math.max(lc.top, lc.price);
+    const pad = (hi - lo) * 0.25 + 0.01, L = lo - pad, H = hi + pad, pos = v => 100 * (v - L) / (H - L);
+    $("na").innerHTML = `<div class="muted" style="font-size:12px">Noise area at ${esc(lc.label)} - inside = wait, outside = trade</div>
+      <div class="na"><div class="zone" style="left:${pos(lc.bot)}%;right:${100 - pos(lc.top)}%"></div>
+      <div class="mk" style="left:${pos(lc.price)}%"></div>
+      <div class="lbl" style="left:${pos(lc.bot)}%">${lc.bot.toFixed(2)}</div>
+      <div class="lbl" style="left:${pos(lc.top)}%">${lc.top.toFixed(2)}</div>
+      <div class="lbl a" style="left:${pos(lc.price)}%;top:-6px">QQQ ${lc.price.toFixed(2)}</div></div>`;
+  }
+  const tr = T.trade;
+  if (tr) {
+    const col = tr.side === "LONG" ? "g" : "r";
+    const upl = (tr.upl !== null && tr.upl !== undefined) ? `<span class="${tr.upl >= 0 ? "g" : "r"}">${money(tr.upl)}</span> right now` : "";
+    $("trade").innerHTML = `<div class="trade"><div><b class="${col}">${tr.side}</b> ${tr.qty} ${esc(tr.symbol)} at ${tr.entry.toFixed(2)} &nbsp;<span class="muted">(${tr.mnq} MNQ)</span> &nbsp; ${upl}</div>
+      <div class="lv"><div class="muted">🎯 take-profit<b>${tr.tp ? tr.tp.toFixed(2) : "-"}</b></div>
+      <div class="muted">🛑 stop<b>${tr.sl ? tr.sl.toFixed(2) : "-"}</b></div>
+      <div class="muted">⏰ else out<b>3:57 PM</b></div></div></div>`;
+  }
+}
+
+// account (eval / funded)
+function account(){
+  const A = D.account; if (!A) { $("acct").innerHTML = ""; return; }
+  const ev = A.phase === "eval";
+  const goal = ev ? 3000 : A.payout_at;
+  const pct = Math.max(0, Math.min(100, 100 * A.bal / goal));
+  let h = `<div style="display:flex;justify-content:space-between;align-items:center"><span class="tag ${A.phase}">${ev ? "EVAL" : "FUNDED"} · day ${A.days}</span>
+           <span class="muted">tomorrow: ${A.next_size} MNQ</span></div>
+           <div class="big ${A.bal >= 0 ? "g" : "r"}" style="margin-top:10px">${money(A.bal)}</div>
+           <div class="muted">${ev ? "of +$3,000 to pass" : "profit · payout at $" + goal.toLocaleString() + " + 5 good days"}</div>
+           <div class="bar"><i style="width:${pct}%"></i></div>
+           <div class="row"><span class="muted">Max-loss line</span><span>${money(A.floor)}</span></div>
+           <div class="row"><span class="muted">Room above it</span><span class="${A.cushion < 800 ? "a" : ""}">$${Math.round(A.cushion).toLocaleString()}</span></div>`;
+  if (ev) h += `<div class="row"><span class="muted">Best day (must stay ≤ 50%)</span><span>${money(A.best)}</span></div>`;
+  else h += `<div class="row"><span class="muted">Good days (+$150)</span><span>${Math.min(A.good, 5)}/5</span></div>
+             <div class="row"><span class="muted">Payouts</span><span>${A.payouts}/5 · <span class="g">$${Math.round(A.paid).toLocaleString()}</span> to you</span></div>`;
+  const tt = D.totals || {};
+  h += `<div class="row"><span class="muted">So far</span><span>${tt.passed || 0} passed · ${tt.blown || 0} blown · <span class="g">$${Math.round(tt.paid || 0).toLocaleString()}</span> paid</span></div>`;
+  $("acct").innerHTML = h;
+}
+
+// pipeline
+function pipeline(){
+  const act = D.active || "";
+  const nodes = [
+    ["sched", "⏰ Scheduler", "wakes 9:52 · Mon-Fri", 10, 20],
+    ["noise", "📐 Noise area", "QQQ, last 14 days", 200, 20],
+    ["watch", "👀 Entry watcher", "every :00/:30, 10-3", 390, 20],
+    ["risk", "🛡️ Bracket", "take-profit + stop", 580, 20],
+    ["journey", "🧮 Lucid journey", "eval → funded → 💸", 770, 20],
+    ["tg", "📱 Telegram", "alerts + payout alarm", 960, 20],
+    ["rsi", "☁️ RSI-2 bot", "GitHub cloud · 3:07 PM", 960, 108],
+  ];
+  const W = 1140, Hh = 170, w = 170, h = 54;
+  let s = `<svg viewBox="0 0 ${W} ${Hh}" width="100%" style="min-width:900px" role="img" aria-label="Bot pipeline">`;
+  const order = ["sched","noise","watch","risk","journey","tg"];
+  const idx = order.indexOf(act);
+  for (let i = 0; i < order.length - 1; i++) {
+    const a = nodes[i], b = nodes[i+1];
+    s += `<path class="edge ${idx >= 0 && i < idx + 1 && i >= idx - 1 ? "hot" : ""}" d="M${a[3]+w},${a[4]+h/2} L${b[3]},${b[4]+h/2}"/>`;
+  }
+  s += `<path class="edge" d="M${960+w/2},${108} L${960+w/2},${20+h}"/>`;
+  nodes.forEach(n => {
+    s += `<g class="node ${n[0] === act ? "act" : ""}"><rect x="${n[3]}" y="${n[4]}" width="${w}" height="${h}" rx="10"/>
+          <text class="t" x="${n[3]+12}" y="${n[4]+22}">${n[1]}</text><text class="s" x="${n[3]+12}" y="${n[4]+40}">${n[2]}</text></g>`;
+  });
+  s += `<text x="10" y="${Hh-8}" fill="#6d82a8" font-size="11">${esc(D.pipe_note || "")}</text></svg>`;
+  $("pipe").innerHTML = s;
+}
+
+// practice money chart
+function chart(){
+  const J = D.journey || [];
+  if (J.length < 1) { $("chart").innerHTML = `<div class="muted">The chart appears after the bot's first trading day.</div>`; return; }
+  const W = 760, H = 260, pl = 56, pr = 14, pt = 14, pb = 28;
+  const vals = J.map(j => j.cum), mn = Math.min(0, ...vals), mx = Math.max(0, ...vals);
+  const span = (mx - mn) || 1, lo = mn - span * .1, hi = mx + span * .1;
+  const x = i => pl + (J.length === 1 ? (W - pl - pr) / 2 : i * (W - pl - pr) / (J.length - 1));
+  const y = v => pt + (hi - v) * (H - pt - pb) / (hi - lo);
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Practice money over time">`;
+  for (let k = 0; k <= 4; k++) {
+    const v = lo + k * (hi - lo) / 4;
+    s += `<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="#16223b"/><text x="${pl-8}" y="${y(v)+4}" fill="#6d82a8" font-size="10" text-anchor="end">${money(v)}</text>`;
+  }
+  s += `<line x1="${pl}" x2="${W-pr}" y1="${y(0)}" y2="${y(0)}" stroke="#2a3a5c" stroke-dasharray="3 4"/>`;
+  const pts = J.map((j, i) => `${x(i)},${y(j.cum)}`).join(" ");
+  s += `<polyline points="${pts}" fill="none" stroke="#3fe0ff" stroke-width="2.2" stroke-linejoin="round"/>`;
+  J.forEach((j, i) => {
+    if (j.event) {
+      const ic = {passed:"🏆", payout:"💸", blown:"💥", maxed:"🚀"}[j.event] || "•";
+      s += `<text x="${x(i)}" y="${y(j.cum) - 10}" font-size="15" text-anchor="middle">${ic}<title>${esc(j.d)}: ${esc(j.event)}</title></text>`;
+    }
+    s += `<circle cx="${x(i)}" cy="${y(j.cum)}" r="${J.length > 60 ? 1.5 : 3}" fill="${j.pnl > 0 ? "#3ddc97" : j.pnl < 0 ? "#ff5c7a" : "#6d82a8"}"><title>${esc(j.d)}: ${money(j.pnl)} (total ${money(j.cum)})</title></circle>`;
+  });
+  s += `<text x="${pl}" y="${H-8}" fill="#6d82a8" font-size="10">${esc(J[0].d)}</text><text x="${W-pr}" y="${H-8}" fill="#6d82a8" font-size="10" text-anchor="end">${esc(J[J.length-1].d)}</text></svg>`;
+  $("chart").innerHTML = s + `<div class="muted" style="font-size:11.5px">🏆 eval passed · 💸 payout · 💥 blown · 🚀 5 payouts. Total practice money: <b class="${vals[vals.length-1] >= 0 ? "g" : "r"}">${money(vals[vals.length-1])}</b></div>`;
+}
+
+// last days table
+function days(){
+  const R = D.days || [];
+  if (!R.length) { $("days").innerHTML = `<div class="muted">No trading days yet.</div>`; return; }
+  let h = `<table><tr><th>Day</th><th>Mode</th><th>Trade</th><th>Ended</th><th class="num">Result</th></tr>`;
+  R.forEach(r => {
+    const cls = r.pnl > 0 ? "g" : r.pnl < 0 ? "r" : "muted";
+    h += `<tr><td>${esc(r.d)}</td><td><span class="tag ${r.phase}">${r.phase.toUpperCase()}</span></td>
+          <td>${r.side ? `<span class="${r.side === "LONG" ? "g" : "r"}">${r.side}</span> ${esc(r.time)} · ${esc(r.size)}` : '<span class="muted">no trade</span>'}</td>
+          <td class="muted">${esc(r.how)}</td><td class="num ${cls}">${r.side ? money(r.pnl) : "-"}</td></tr>`;
+  });
+  $("days").innerHTML = h + "</table>";
+}
+
+// ---------------------------------------------------------------- start
+tick(); setInterval(tick, 1000);
+load(); setInterval(load, POLL_MS);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) load(); });
+</script>
+</body>
+</html>
