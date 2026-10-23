@@ -136,7 +136,7 @@ svg text{font-family:var(--mono)}
   </div>
   <div class="foot">
     <span id="settings"></span>
-    <span>Updated <span id="upd">-</span> · the bot sends updates every ~2 min · <span id="fetchnote">this page checks every 30 s</span></span>
+    <span>Updated <span id="upd">-</span> · the bot sends updates <span id="every">about every minute</span> · <span id="fetchnote">this page checks every 30 s</span></span>
   </div>
 </div>
 
@@ -145,7 +145,7 @@ svg text{font-family:var(--mono)}
 const OWNER = "azwhylol", REPO = "azgoonlivedatabot";
 const DATA_URL = `https://api.github.com/repos/${OWNER}/${REPO}/contents/data.json?ref=data`;
 const POLL_MS = 30000;          // look for new data every 30 s (only while the page is on screen)
-const STALE_SEC = 420;          // no update for 7 min while trading = something is wrong
+const staleSec = () => Math.max(300, 2 * ((D && D.web_every) || 120) + 180);   // no update for this long while trading = something is wrong
 
 let D = null;                   // the latest data from the bot
 let pausedUntil = 0;            // GitHub's hourly limit reached -> wait until this time (ms)
@@ -193,7 +193,7 @@ function tick(){
   const quiet = ["closed", "sleeping", "stopped"].includes(D.state);
   al.hidden = true;
   if (D.state === "offline") { pill.className = "pill off"; t.textContent = "bot not running"; }
-  else if (age > STALE_SEC && !quiet) {
+  else if (age > staleSec() && !quiet) {
     pill.className = "pill warn"; t.textContent = "no heartbeat";
     al.hidden = false;
     al.textContent = "⚠️ The bot hasn't sent an update for " + Math.round(age/60) + " min. Is the black window still open and the PC awake?";
@@ -207,6 +207,8 @@ function render(){
   $("grid").classList.remove("loading");
   ring(); today(); account(); pipeline(); chart(); days();
   $("settings").textContent = D.settings || "";
+  const ev = D.web_every || 120;
+  $("every").textContent = ev <= 60 ? "about every minute" : "every ~" + Math.round(ev / 60) + " min";
   tick();
 }
 
